@@ -13,6 +13,37 @@ from mininet.node import Node, OVSKernelSwitch, RemoteController
 from mininet.topo import Topo
 from mininet.util import waitListening,custom
 
+import networkx as nx
+import jellyfish
+
+class JellyfishTopo( Topo ):
+
+    def __init__(self, G):
+
+        Topo.__init__(self)
+
+        nx_to_mn_names = {}
+
+        jelly_switches = [node[0] for node in list(G.nodes(data=True)) if node[1]['type'] == 'switch']
+        jelly_hosts = [node[0] for node in list(G.nodes(data=True)) if node[1]['type'] == 'host']
+
+        for switch in jelly_switches:
+            mn_name = self.addSwitch(str(switch))
+            nx_to_mn_names[switch] = mn_name
+
+        for host in jelly_hosts:
+            mn_name = self.addHost(str(host))
+            nx_to_mn_names[host] = mn_name
+
+        edge_list = list(G.edges())
+
+        for edge in edge_list:
+            if edge[0] == edge[1]: # i don't think i have self loops, but maybe?
+                continue
+            self.addLink(str(nx_to_mn_names[edge[0]]), str(nx_to_mn_names[edge[1]]), cls=TCLink, bw=10, delay=10)
+
+topos = { 'mytopo': ( lambda: JellyfishTopo() ) }
+
 def graph_to_topo(graph):
     """
     Builds a mininet Topology for a graph
@@ -25,8 +56,9 @@ def graph_to_topo(graph):
     -------
     mininet.Topo
     """
+    mininet.clean.cleanup()
 
-    raise Exception("Not implemented")
+    return JellyfishTopo(graph)
 
 def make_mininet(graph):
     """
@@ -45,8 +77,8 @@ def make_mininet(graph):
 
     # pox controller
     pox = RemoteController("c1", ip="127.0.0.1", port=6633)
-    
-    return Mininet(topo=topo, controller=pox, autoSetMacs=True)
+
+    return Mininet(topo=topo, controller=pox, link=TCLink, autoSetMacs=True)
 
 def run(graph):
     """
@@ -61,7 +93,7 @@ def run(graph):
 
     mininet.clean.cleanup()
     net = make_mininet(graph)
-    
+
     net.start()
     CLI(net)
     net.stop()

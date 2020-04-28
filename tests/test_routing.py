@@ -14,7 +14,16 @@ class TestRouting(unittest.TestCase):
         # lg.setLogLevel('info')
 
         mininet.clean.cleanup()
-        
+
+        G = jellyfish.graphs.jellyfish(20,4,1)
+        net = jellyfish.mininet.make_mininet(G)
+        net.start()
+        net.waitConnected()
+        loss = net.pingAll()
+
+        print('Loss = '.format(loss))
+        self.assertEqual(loss, 0)
+
         # Some hints for this:
         # * The Mininet waitConnected() method waits until all switches connect
         #   to a controller, which helps with test reliability.
@@ -22,7 +31,6 @@ class TestRouting(unittest.TestCase):
         #   returns the percentage of packet loss. You can assert that this is zero
         # * If this fails every once in a while because pox hasn't set up routes,
         #   that's not ideal but acceptable.
-        raise Exception("Not implemented")
-        
+
 if __name__ == '__main__':
     unittest.main()
