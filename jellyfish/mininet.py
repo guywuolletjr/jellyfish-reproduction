@@ -38,11 +38,11 @@ class JellyfishTopo( Topo ):
         edge_list = list(G.edges())
 
         for edge in edge_list:
-            if edge[0] == edge[1]: # i don't think i have self loops, but maybe?
-                continue
+            # if edge[0] == edge[1]: # i don't think i have self loops, but maybe?
+            #     continue
             self.addLink(str(nx_to_mn_names[edge[0]]), str(nx_to_mn_names[edge[1]]), cls=TCLink, bw=10, delay=10)
 
-topos = { 'mytopo': ( lambda: JellyfishTopo() ) }
+# topos = { 'mytopo': ( lambda: JellyfishTopo() ) }
 
 def graph_to_topo(graph):
     """
@@ -56,7 +56,6 @@ def graph_to_topo(graph):
     -------
     mininet.Topo
     """
-    mininet.clean.cleanup()
 
     return JellyfishTopo(graph)
 
@@ -76,7 +75,8 @@ def make_mininet(graph):
     topo = graph_to_topo(graph)
 
     # pox controller
-    pox = RemoteController("c1", ip="127.0.0.1", port=6633)
+    #pox = RemoteController("c1", ip="127.0.0.1", port=6633)
+    pox = RemoteController("c1", ip="0.0.0.0", port=6633)
 
     return Mininet(topo=topo, controller=pox, link=TCLink, autoSetMacs=True)
 

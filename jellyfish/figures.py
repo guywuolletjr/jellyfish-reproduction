@@ -4,6 +4,21 @@ import networkx as nx
 import numpy as np
 from matplotlib import style
 import random
+import os
+import sys
+import shutil
+import jellyfish
+import math
+
+import mininet
+import mininet.clean
+from mininet.net import Mininet
+from mininet.cli import CLI
+from mininet.log import lg, info
+from mininet.link import TCLink, Link, TCIntf
+from mininet.node import Node, OVSKernelSwitch, RemoteController
+from mininet.topo import Topo
+from mininet.util import waitListening,custom
 
 def figure_1c(filename):
     fg = graphs.fat_tree(14)
@@ -287,16 +302,142 @@ def figure_9(filename):
         ax.legend(labelspacing = 1.25, frameon=True)
         plt.savefig(filename)
         plt.show()
-        
+
     linkrank(98,14,7)
 
 
 
 
 def figure_1c_mininet(filename):
-    # TODO: implement this
-    raise Exception("not implemented")
+
+    def get_ping_vals(pings):
+        ping_vals = []
+
+        for ping in pings:
+            ping_times = ping[2]
+            if ping_times[0] == ping_times[1]:
+                avg_ping = sum([ping_times[2], ping_times[3], ping_times[4]])/3
+                ping_vals.append(avg_ping)
+        return ping_vals
+
+    mininet.clean.cleanup()
+    G = graphs.jellyfish(16,4,1)
+    net = jellyfish.mininet.make_mininet(G)
+    net.start()
+    net.waitConnected()
+    jelly_pings = net.pingAllFull()
+    jelly_ping_vals = get_ping_vals(jelly_pings)
+    net.stop()
+    #print(jelly_ping_vals)
+
+    mininet.clean.cleanup()
+    G = graphs.fat_tree(4)
+    net = jellyfish.mininet.make_mininet(G)
+    net.start()
+    net.waitConnected()
+    fat_pings = net.pingAllFull()
+    fat_ping_vals = get_ping_vals(fat_pings)
+    net.stop()
+    #print(fat_ping_vals)
+
+    def norm_pings(pings):
+        np_pings = np.array(pings)
+        norm_pings = np_pings/np.min(np_pings)
+        norm_pings = np.ceil(norm_pings)
+        norm_pings = norm_pings.astype(int)
+        norm_pings = list(norm_pings)
+        return norm_pings
+
+    jelly_norm_pings = norm_pings(jelly_ping_vals)
+    fat_norm_pings = norm_pings(fat_ping_vals)
+
+    length = max(max(jelly_norm_pings), max(fat_norm_pings))
+    if length > 20: #cut off path lengths longer than 20, they are outliers anyway
+        length = 20
+    jelly_ping_freq = [jelly_norm_pings.count(i)/len(jelly_norm_pings) for i in range(length)]
+    fat_ping_freq = [fat_norm_pings.count(i)/len(fat_norm_pings) for i in range(length)]
+
+    style.use('seaborn')
+    # inspired from https://matplotlib.org/examples/api/barchart_demo.html
+    # and https://matplotlib.org/gallery/lines_bars_and_markers/barchart.html#sphx-glr-gallery-lines-bars-and-markers-barchart-py
+
+    labels = [str(i) for i in range(length)]
+    n = np.arange(len(labels))
+    width = 0.35
+
+    fig, ax = plt.subplots()
+    bars_jelly = ax.bar(n - width/2, jelly_ping_freq, width=0.35, label="Jellyfish", color='blue')
+    bars_fat = ax.bar(n + width/2, fat_ping_freq, width=0.35, label="Fat Tree", color='red')
+    ax.set_xlabel("Path Length")
+    ax.set_ylabel("Fraction of Server Pairs")
+    ax.set_xticks(n)
+    ax.set_yticks(np.arange(10)/10)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    plt.show()
+    plt.savefig(filename)
+
 
 def table_1(filename):
-    # TODO: implement this
-    raise Exception("not implemented")
+
+    def iperf_approx(graph):
+        net = jellyfish.mininet.make_mininet(graph)
+        net.start()
+        net.waitConnected()
+
+        hosts = net.hosts
+        index = list(range(len(net.hosts)))
+        random.shuffle(index)
+
+        port = 5000
+
+        for i in range(len(net.hosts)):
+            src = hosts[i]
+            dst = hosts[index[i]]
+            if src == dst:
+                continue
+            else:
+                dst_cmd = 'iperf -s -p ' + str(port) + ' -1 &'
+                src_cmd = 'iperf -c ' + dst.IP() + ' -p ' + str(port) + ' > '+ 'mininet_results/' + src.IP() + '_to_' + dst.IP()
+                dst.cmd(dst_cmd)
+                src.cmd(src_cmd)
+            port += 1
+
+    def get_normalized_bandwidth():
+        fixed_bandwidth = 10 #this was specified when we created the links
+
+        mininet_results_dir = '/vagrant/mininet_results'
+        bandwidths = []
+
+        for file in os.listdir(mininet_results_dir):
+            f = open(mininet_results_dir + '/' + file, 'r')
+            for line in f:
+                data = f.read()
+                if 'Mbits/sec' in data.split():
+                    index = data.split().index('Mbits/sec')
+                    num = float(data.split()[index-1])
+                    bandwidths.append(num)
+        norm_avg_bd = sum(bandwidths)/len(bandwidths)
+        frac_norm_avg_bd = norm_avg_bd / fixed_bandwidth
+        return frac_norm_avg_bd
+
+    if os.path.exists("mininet_results"):
+        shutil.rmtree("mininet_results")
+    os.mkdir("mininet_results")
+
+    mininet.clean.cleanup()
+    G = graphs.jellyfish(16,4,1)
+    iperf_approx(G)
+    jelly_bd = get_normalized_bandwidth()
+
+    if os.path.exists("mininet_results"):
+        shutil.rmtree("mininet_results")
+    os.mkdir("mininet_results")
+
+    mininet.clean.cleanup()
+    G = graphs.fat_tree(4)
+    iperf_approx(G)
+    fat_bd = get_normalized_bandwidth()
+
+    f = open(filename, 'w')
+    f.writelines(["Jellyfish bandwidth: {}\n".format(jelly_bd), "Fat Tree bandwidth: {}\n".format(fat_bd) ])

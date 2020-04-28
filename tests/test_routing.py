@@ -2,6 +2,8 @@ import unittest
 import jellyfish
 from mininet.log import lg
 import mininet.clean
+import os
+import subprocess
 
 class TestRouting(unittest.TestCase):
 
@@ -16,9 +18,12 @@ class TestRouting(unittest.TestCase):
         mininet.clean.cleanup()
 
         G = jellyfish.graphs.jellyfish(20,4,1)
+
+        #subprocess.run('~/pox/pox.py --verbose openflow.spanning_tree --no-flood --hold-down openflow.discovery forwarding.l2_learning')
         net = jellyfish.mininet.make_mininet(G)
         net.start()
         net.waitConnected()
+
         loss = net.pingAll()
 
         print('Loss = '.format(loss))

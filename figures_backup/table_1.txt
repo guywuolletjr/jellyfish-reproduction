@@ -1,0 +1,2 @@
+Jellyfish bandwidth: 0.9011428571428572
+Fat Tree bandwidth: 0.9018181818181817

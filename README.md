@@ -8,6 +8,26 @@ That information is available starting at the Overview subsection. There should
 also be a disclaimer marking the information I added to the README and the
 original README directly above the original README.
 
+I also added a section to the repo called ```figures_backup``` with copies of the
+figures as they were generated on my machine so that the originals are not overwritten
+when reproducing results.
+
+All my scratch work is also in the provided example ipython notebook.
+
+# Summary of Work
+
+After spending 40+ hours with the Jellyfish paper, I am a lot more skeptical
+about academic results, specifically in networking. The paper made a lot of unspecified
+assumptions and was often unclear. Further more, the results for many figures do
+not seem to hold under reasonable assumptions. These figures could contain an error,
+or I could have simply misunderstood the author despite my best efforts.
+
+The Jellyfish paper further convinced me that any great academic result in computer science
+today should contain a link to the source code. This is an aspect of open
+source software I did not previously take into account, but reproducibility should
+be a key driver for both academics and practitioners in industry adopting new
+research.
+
 # Part 1: Paper Understanding
 
 1. What are the main claims of the Jellyfish paper?
@@ -133,7 +153,12 @@ office hours if I remember correctly, and by Jeyla Aranjo.
 
 2. This was pretty confusing to start with but most of my errors were syntactical.
 
-3. Getting routing working has been a huge pain. Even when I run the ```sudo jellyfish mn --graph='fat_tree' -k 4``` command specified in the README, everytime I run ```pingall``` at least one of the
+3. Before running the test, you must first ssh into the vagrant machine on a second terminal
+and run ```$ ~/pox/pox.py --verbose openflow.spanning_tree --no-flood --hold-down openflow.discovery forwarding.l2_learning```
+at the command line. This will spawn the remote POX controller. Changing the IP
+address for the pox controll to 0.0.0.0 from 127.0.0.1 seemed to help.  
+
+Getting routing working has been a huge pain. Even when I run the ```sudo jellyfish mn --graph='fat_tree' -k 4``` command specified in the README, everytime I run ```pingall``` at least one of the
 switches does not connect to anything despite it being clear that the links were
 added in the print statements above. I reloaded the vagrant VM but it does not seem
 to work. I got it to work for k=2 for fat tree, but not for larger k. The test
@@ -144,7 +169,45 @@ it's totally random, but when it was behaving badly I would have to run the test
 more than 10 times for it to complete. For some reason, it seems to return true
 more often for ```G = jellyfish.graphs.jellyfish(20,4,1)``` than for ```G = jellyfish.graphs.jellyfish(16,4,1)```.
 
-4. 
+4. Before running this part, you must first ssh into the vagrant machine on a second terminal
+and run ```$ ~/pox/pox.py --verbose openflow.spanning_tree --no-flood --hold-down openflow.discovery forwarding.l2_learning```
+at the command line. This will spawn the remote POX controller. I had to make a ton of
+assumptions to get this figure to even remotely work. First, mininet will not provision
+a topology for the fat tree larger than k=4, so I used ```G = jellyfish.graphs.jellyfish(16,4,1)``` and```G = jellyfish.graphs.fat_tree(4)``` instead of ```G = jellyfish.graphs.jellyfish(98,14,7)``` and```G = jellyfish.graphs.fat_tree(14)```. This seemed to be a common problem
+based on piazza posts and office hours. Next, I used the ```pingallfull``` command
+to gather ping data for each pair of end hosts. I took the average over the
+three pings as the ping value for the given host pair. I then normalized the
+ping time by dividing each ping time by the minimum ping time for the given
+topology. In this way, I was naively assuming that the minimum ping time traversed
+from host to host with a path length 1. Unfortunately, the ping times varied widely,
+especially for the Jellyfish topology. Data around the 75th percentile of the ping
+data set was always many times longer than data around the 25th percentile. This meant
+that even with normalization, we would find very long path lengths relative to what
+should be theoretically true. The graph the script produces does give the correct intuition
+however, path lengths for the 'same equipment' topology are shorter for Jellyfish than
+for fat tree. I also again had issues where one, or many, hosts would
+be entirely unresponsive even though they were correctly part of the topology.
+
+5. The next few sentences are identical to part 3.4 because I ran into the same issues. Before running this part, you must first ssh into the vagrant machine on a second terminal
+and run ```$ ~/pox/pox.py --verbose openflow.spanning_tree --no-flood --hold-down openflow.discovery forwarding.l2_learning```
+at the command line. This will spawn the remote POX controller. I had to make a ton of
+assumptions to get this figure to even remotely work. First, mininet will not provision
+a topology for the fat tree larger than k=4, so I used ```G = jellyfish.graphs.jellyfish(16,4,1)``` and```G = jellyfish.graphs.fat_tree(4)``` instead of ```G = jellyfish.graphs.jellyfish(98,14,7)``` and```G = jellyfish.graphs.fat_tree(14)```. This seemed to be a common problem
+based on piazza posts and office hours.
+
+_New 3.5 thoughts start here!_
+
+For this function I used the iperf capability of mininet, and randomly sampled
+each host to start an iperf TCP flow to another host. I then took the resulting
+bandwidths and average them, before dividing by the bandwidth I originally specified
+when adding links, 10 Mb/s. This will take several minutes to run, even for the smaller graph.
+This could potentially be because of the delay I included when adding links, but
+that delay was helpful for 3.4 and is a realistic part of a network so I would
+rather not remove it. The delay is also probably due to the fact that the iperf
+calls are not parallelized, but I was unsure how to implement that functionality
+for mininet in Python.
+
+
 
 __Everything below this point is forked from the originally supplied starter code README.__
 ______________________________________________________________________________________________________________________
