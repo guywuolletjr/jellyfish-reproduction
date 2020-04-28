@@ -73,7 +73,7 @@ Among practical challenges with a Jellyfish network mentioned by the paper, cabl
 
 Outside of practical concerns the paper mentions, I would imagine it would be harder to tailor policy, monitoring, and remediation tools in a network environment that is configured randomly. Without the ability to probably control their network in a deterministic fashion, some operators might be turned off by the Jellyfish topology. If specific servers or switches must be physically grouped together, for training ML models online in production for example, a Jellyfish topology also wouldn't work as those elements would be randomly connected instead of deliberately grouped.
 
-#Part 2: Paper Reproduction
+# Part 2: Paper Reproduction
 
 1. This part was tricky to implement as the paper was underspecified. It seems possible that more than one unmatched port might remain in the case where there
 are many switches with one unmatched remaining port. However, for the final version
@@ -147,7 +147,7 @@ generating paths for each source, destination pair. Generating all paths, the al
 took killed my kernel all three times I ran it. This optimization way suggested in
 office hours if I remember correctly, and by Jeyla Aranjo.
 
-#Part 3: Paper Extension
+# Part 3: Paper Extension
 
 1. I read through all the given material
 
